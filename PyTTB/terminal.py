@@ -77,6 +77,11 @@ def aguardar(segundos: float):
     while (sum(os.times()) - tempo_inicial) < segundos:
         pass
 
+def mudar_titulo(titulo: str):
+    """Muda o título do terminal."""
+    
+    rodar_comando(f"title {titulo}", f"echo -ne '\033]0;{titulo}\007'")
+
 # Cores de texto (foreground)
 PRETO    = FG_BLACK   = "\033[30m"
 VERMELHO = FG_RED     = "\033[31m"

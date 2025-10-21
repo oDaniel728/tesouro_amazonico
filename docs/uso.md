@@ -8,8 +8,10 @@ import PyTTB
 ```
 ---
 > Ela possui 2 módulos principais.
-- [Terminal](modules/terminal.md)
-- [Canvas](modules/canvas.md)
+- ✍ [Terminal](modules/terminal.md): _Manipulação do terminal._
+- 🎨 [Canvas](modules/canvas.md): _Desenhos no terminal._
+- 🎮 [Teclado](modules/teclado.md): _Absorção de teclas pelo terminal._
+- 🔔 [Eventos](modules/eventos.md): _Criação de eventos._
 
 ### Terminal
 Manipulação, leitura e escrita do terminal, e algumas funções extras como `.aguarde(float)`;  

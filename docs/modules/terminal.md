@@ -11,6 +11,7 @@
 2.7. [largura](#largura---int)  
 2.8. [altura](#altura---int)  
 2.9. [aguardar](#aguardarsegundos-float)  
+2.10. [mudar_titulo]
 
 ## Guia de uso
 Primeiro Passo: Importe o terminal de PyTTB:
@@ -34,6 +35,9 @@ terminal.escreva(...)
 > NOTA: Vale notar que ele não termina com uma quebra de linha(`\n`)
 
 > NOTA: `texto` precisa ser uma string.
+
+> NOTA: `...` pode ser substituido por qualquer coisa, seja criativo :D
+
 ### `escreval(texto: str)`
 - Escreve texto na tela do terminal(assim como `escreva`), mas ele termina com uma quebra de linha(`\n`)
 ```python
@@ -81,4 +85,11 @@ altura = terminal.altura()
 ```py
 terminal.aguardar(3)
 # ele espera 3 segundos
+```
+
+### `mudar_titulo(titulo: str)`
+- Muda o titulo da janela, agora sendo `titulo`
+```py
+terminal.mudar_titulo(...)
+# agora titulo é ...
 ```

@@ -60,6 +60,11 @@ def gerar_canvas_lista() -> list[list[str]]:
 
 # ======= CRIAR FORMAS =======
 
+def criar_ponto(posicao: Vector2D, caractere: str) -> dict[Vector2D, str]:
+    """Cria um ponto e retorna como dicionário de posições e caracteres."""
+    x, y = posicao
+    return {(x, y): caractere}
+
 def criar_linha(pos_inicial: Vector2D, pos_final: Vector2D, caractere: str) -> dict[Vector2D, str]:
     """Cria uma linha entre dois pontos e retorna como dicionário de posições e caracteres."""
     x1, y1 = pos_inicial
@@ -146,6 +151,12 @@ def desenhar(tabela: dict[Vector2D, str], deslocamento: Vector2D = (0, 0)):
     for posicao, caractere in tabela.items():
         canvas_points[somar_vetores(posicao, deslocamento)] = caractere
 desenhar_forma = desenhar
+
+def desenhar_ponto(posicao: Vector2D, caractere: str):
+    """Cria e desenha um ponto no canvas."""
+    tabela = criar_ponto(posicao, caractere)
+    desenhar_forma(tabela)
+    return list(tabela.keys())
 
 def desenhar_linha(pos_inicial: Vector2D, pos_final: Vector2D, caractere: str):
     """Cria e desenha uma linha no canvas."""
