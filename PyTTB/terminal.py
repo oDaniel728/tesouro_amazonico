@@ -3,6 +3,8 @@ from typing import TypeVar; _T = TypeVar("_T")
 from .utilidades import limitar_inteiro
 import os
 
+tamanho = None
+
 def rodar_comando(windows: str, linux: str | None = None):
     """Executa um comando no terminal."""
 
@@ -45,6 +47,7 @@ def leia(tipo: type[_T]) -> _T:
 def pegar_tamanho_do_terminal() -> tuple[int, int]:
     """Retorna o tamanho do terminal (largura, altura)."""
     
+    if tamanho: return tamanho
     return os.get_terminal_size()
 
 def largura() -> int:
@@ -68,6 +71,7 @@ def mudar_tamanho_do_terminal(colunas: int, linhas: int):
     # if colunas == -1: colunas = max_cols
     # if linhas == -1: linhas = max_lns
     
+    global tamanho; tamanho = (colunas, linhas)
     rodar_comando(f"mode con cols={colunas} lines={linhas}", "printf '\033[8;40;100t'")
 
 def aguardar(segundos: float):
@@ -122,10 +126,23 @@ PISCANDO    = "\033[5m"
 INVERTIDO   = "\033[7m"
 OCULTO      = "\033[8m"
 
-def colorir_texto(cor: str, texto: str):
+def colorir_texto(cor: str | tuple[int, int, int], texto: str):
     """Aplica cor ao texto retornando string formatada."""
     
+    if isinstance(cor, tuple): cor = fgcor_rgb(*cor)
+    elif cor.startswith("#"): cor = fgcor_hex(cor)
+
     return f"{cor}{texto}{RESET}"
+def colorir_fundo(cor: str | tuple[int, int, int], texto: str):
+    """Aplica cor ao fundo retornando string formatada."""
+    
+    if isinstance(cor, tuple): cor = bgcor_rgb(*cor)
+    elif cor.startswith("#"): cor = bgcor_hex(cor)
+
+    return f"{cor}{texto}{RESET}"
+
+ctex = colorir_texto
+cfun = colorir_fundo
 
 _paleta = dict(
     R=RESET,
@@ -162,3 +179,29 @@ def formatar(texto: str, cores: dict[str, str] = _paleta, formato: str = '[{}]')
         texto = texto.replace(formato.format(cor), cores[cor])
     
     return texto
+
+def fgcor_rgb(r: int, g: int, b: int) -> str:
+    """Retorna ANSI escape code para cor de foreground RGB."""
+    r = max(0, min(255, r))
+    g = max(0, min(255, g))
+    b = max(0, min(255, b))
+    return f"\033[38;2;{r};{g};{b}m"
+
+def bgcor_rgb(r: int, g: int, b: int) -> str:
+    """Retorna ANSI escape code para cor de background RGB."""
+    r = max(0, min(255, r))
+    g = max(0, min(255, g))
+    b = max(0, min(255, b))
+    return f"\033[48;2;{r};{g};{b}m"
+
+def fgcor_hex(hex_code: str) -> str:
+    """Recebe código hex (#RRGGBB ou RRGGBB) e retorna ANSI escape code para foreground."""
+    hex_code = hex_code.lstrip('#')
+    r, g, b = int(hex_code[0:2], 16), int(hex_code[2:4], 16), int(hex_code[4:6], 16)
+    return fgcor_rgb(r, g, b)
+
+def bgcor_hex(hex_code: str) -> str:
+    """Recebe código hex (#RRGGBB ou RRGGBB) e retorna ANSI escape code para background."""
+    hex_code = hex_code.lstrip('#')
+    r, g, b = int(hex_code[0:2], 16), int(hex_code[2:4], 16), int(hex_code[4:6], 16)
+    return bgcor_rgb(r, g, b)

@@ -11,6 +11,10 @@ def somar_vetores(vetor1: Vector2D, vetor2: Vector2D) -> Vector2D:
     """Soma dois vetores 2D e retorna o resultado."""
     return (vetor1[0] + vetor2[0], vetor1[1] + vetor2[1])
 
+def porporcao_vetores(vetor1: Vector2D, vetor2: Vector2D = (2, 1)) -> Vector2D:
+    """Multiplica dois vetores 2D e retorna o resultado."""
+    return (vetor1[0] * vetor2[0], vetor1[1] * vetor2[1])
+
 def pegar_centro(vetor: Vector2D) -> Vector2D:
     """Retorna o centro de um vetor 2D."""
     return (vetor[0] // 2, vetor[1] // 2)
@@ -88,7 +92,7 @@ def criar_linha(pos_inicial: Vector2D, pos_final: Vector2D, caractere: str) -> d
             y1 += passo_y
     return tabela
 
-def criar_retangulo(pos_inicial: Vector2D, pos_final: Vector2D, borda: str, preenchimento: str | None = None) -> dict[Vector2D, str]:
+def criar_retangulo(pos_inicial: Vector2D, pos_final: Vector2D, borda: str, preenchimento: str | bool | None = None) -> dict[Vector2D, str]:
     """Cria um retângulo com borda e opcional preenchimento e retorna como dicionário de pontos."""
     tabela: dict[Vector2D, str] = {}
     x1, y1 = pos_inicial
@@ -98,6 +102,8 @@ def criar_retangulo(pos_inicial: Vector2D, pos_final: Vector2D, borda: str, pree
             if x in (x1, x2) or y in (y1, y2):
                 tabela[(x, y)] = borda
             elif preenchimento:
+                if preenchimento == True:
+                    preenchimento = borda
                 tabela[(x, y)] = preenchimento
     return tabela
 
@@ -197,7 +203,6 @@ def desenhar_linhas(pontos: list[Vector2D], caractere: str):
 def atualizar():
     """Renderiza todo o canvas no terminal linha por linha."""
     canvas = gerar_canvas_lista()
-    for y_index, linha in enumerate(canvas):
-        for x_index, _ in enumerate(linha):
-            t.escreva(canvas_points.get((x_index, y_index), ' '))
-        t.escreva("\n")
+    conteudo = "\n".join("".join(linha) for linha in canvas)
+    t.escreva("\n" + conteudo)
+    t.atualizar()
