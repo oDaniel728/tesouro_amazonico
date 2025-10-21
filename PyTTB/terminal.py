@@ -1,24 +1,81 @@
+from typing import TypeVar; _T = TypeVar("_T")
+
+from .utilidades import limitar_inteiro
 import os
 
+def rodar_comando(windows: str, linux: str | None = None):
+    """Executa um comando no terminal."""
+
+    linux = linux or windows
+    os.system(windows if os.name == "nt" else linux)
+
 def limpar_tela():
-    os.system("cls" if os.name == "nt" else "clear")
+    """Limpa a tela do terminal."""
+
+    rodar_comando(windows="cls", linux="clear")
 
 def escreva(texto: str):
+    """Escreve texto sem pular linha."""
+    
     print(texto, end='', flush=False)
 
 def escreval(texto: str):
+    """Escreve texto e pula uma linha."""
+    
     escreva(texto + "\n")
 
-def atualizar_tela():
+def atualizar():
+    """Força atualização do terminal (flush)."""
+    
     print('', end='', flush=True)
 
-def leia(tipo: type):
-    m = input()
+def leia(tipo: type[_T]) -> _T:
+    """Lê entrada do usuário e converte para o tipo informado.
+    Em caso de erro, repete a leitura.
+    """
+    
+    entrada = input()
     try:
-        return tipo(m)
+        return tipo(entrada) # type: ignore
+    
     except:
         escreval(f"{VERMELHO}[{RESET}ERRO{VERMELHO}]{RESET}: {VERMELHO_CLARO}Entrada inválida! {RESET}")
         return leia(tipo)
+    
+def pegar_tamanho_do_terminal() -> tuple[int, int]:
+    """Retorna o tamanho do terminal (largura, altura)."""
+    
+    return os.get_terminal_size()
+
+def largura() -> int:
+    """Retorna a largura do terminal."""
+    
+    return pegar_tamanho_do_terminal()[0]
+
+def altura() -> int:
+    """Retorna a altura do terminal."""
+    
+    return pegar_tamanho_do_terminal()[1]
+
+def mudar_tamanho_do_terminal(colunas: int, linhas: int):
+    """Muda o tamanho do terminal."""
+    
+    # max_cols, max_lns = pegar_tamanho_do_terminal()
+
+    # colunas = limitar_inteiro(colunas, 1, max_cols)
+    # linhas = limitar_inteiro(linhas, 1, max_lns)
+
+    # if colunas == -1: colunas = max_cols
+    # if linhas == -1: linhas = max_lns
+    
+    rodar_comando(f"mode con cols={colunas} lines={linhas}", "printf '\033[8;40;100t'")
+
+def aguardar(segundos: float):
+    """Simula time.sleep(segundos) usando busy-wait."""
+    
+    tempo_inicial = sum(os.times())
+    while (sum(os.times()) - tempo_inicial) < segundos:
+        pass
 
 # Cores de texto (foreground)
 PRETO    = FG_BLACK   = "\033[30m"
@@ -61,6 +118,8 @@ INVERTIDO   = "\033[7m"
 OCULTO      = "\033[8m"
 
 def colorir_texto(cor: str, texto: str):
+    """Aplica cor ao texto retornando string formatada."""
+    
     return f"{cor}{texto}{RESET}"
 
 _paleta = dict(
@@ -83,15 +142,18 @@ _paleta = dict(
     BGBY=BG_YELLOW,
     BGBM=BG_MAGENTA,
     BGBC=BG_CYAN,
-    NE=NEGRITO,
-    FR=FRACO,
-    IT=ITALICO,
-    SL=SUBLINHADO,
-    PI=PISCANDO,
-    IN=INVERTIDO
+    B=NEGRITO,
+    W=FRACO,
+    I=ITALICO,
+    S=SUBLINHADO,
+    P=PISCANDO,
+    N=INVERTIDO
 )
 
 def formatar(texto: str, cores: dict[str, str] = _paleta, formato: str = '[{}]'):
+    """Substitui códigos de cores e efeitos no texto pelo ANSI correspondente."""
+    
     for cor in cores:
         texto = texto.replace(formato.format(cor), cores[cor])
+    
     return texto
