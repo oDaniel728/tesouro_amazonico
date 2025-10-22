@@ -17,11 +17,11 @@ Ao invés de trabalhadores, serão funções e ao invés de um sino, será uma f
 3. [Exemplos](#exemplos)
 
 ## Guia de uso
-Primeiro Passo: Importe o terminal de PyTTB:
+Primeiro Passo: Importe os eventos de PyTTB:
 ```py
 from PyTTB import eventos
 ```
-- Agora você já possui todas as funcionalidades do terminal.
+- Agora você já possui todas as funcionalidades dos eventos.
 ---
 ## Funcionalidades Principais
 ### `criar_evento(nome: str) -> evento`

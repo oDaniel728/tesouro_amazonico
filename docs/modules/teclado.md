@@ -6,11 +6,11 @@
 2.1. [tecla_pressionada](#tecla_pressionada---str--none)
 
 ## Guia de uso
-Primeiro Passo: Importe o terminal de PyTTB:
+Primeiro Passo: Importe o teclado de PyTTB:
 ```py
 from PyTTB import teclado
 ```
-- Agora você já possui todas as funcionalidades do terminal.
+- Agora você já possui todas as funcionalidades do teclado.
 ---
 ## Funcionalidades Principais
 ### `tecla_pressionada() -> str | None`

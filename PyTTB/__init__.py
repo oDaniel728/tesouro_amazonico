@@ -6,3 +6,5 @@ from . import eventos as events
 
 from . plugins import atalhos
 from . plugins import tiles
+
+from . import sons as audio

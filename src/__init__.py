@@ -6,6 +6,7 @@ from PyTTB import (
     data,
     atalhos,
     tiles,
+    audio
 )
 
 from . import componentes
@@ -16,7 +17,9 @@ rodando = True
 
 @atalhos.tecla_pressionada("q")
 def _quando_tecla_q_pressionada():
+    audio.tocar_audio("audio.wav")
     global rodando; rodando = False
+
 
 def renderizar_tela():
     c.apagar_canvas()  # limpa frame anterior
