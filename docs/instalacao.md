@@ -11,7 +11,7 @@ cd meu_projeto
 ```
 ## Instalação manual
 ### Via Release
-- [Vá para os downlaods](https://github.com/oDaniel728/tesouro_amazonico/releases)
+- [Vá para os downloads](https://github.com/oDaniel728/tesouro_amazonico/releases)
 ### Via download
 ![step1](images/step1.png)
 ![step2](images/step2.png)
