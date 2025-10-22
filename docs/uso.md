@@ -7,7 +7,7 @@ Importe usando o `import`
 import PyTTB
 ```
 ---
-> Ela possui 2 módulos principais.
+> Ela possui 4 módulos principais.
 - ✍ [Terminal](modules/terminal.md): _Manipulação do terminal._
 - 🎨 [Canvas](modules/canvas.md): _Desenhos no terminal._
 - 🎮 [Teclado](modules/teclado.md): _Absorção de teclas pelo terminal._

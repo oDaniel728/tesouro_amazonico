@@ -144,10 +144,20 @@ txt = canvas.criar_texto((0,0), "Olá")
 
 ### `criar_linhas(pontos, caractere)`
 
-* Cria polilinha conectando os pontos.
+* Cria uma forma conectando os pontos.
 
 ```python
 pol = canvas.criar_linhas([(0,0),(1,2),(3,3)], "*")
+```
+
+### `criar_imagem(caminho: str, caractere: str?, proporcao: Vector2D?)`
+
+* Transforma a imagem do `caminho` em um tabela para ser desenhada.
+> `caractere` por padrão é a transparência por pixel.
+> `porporcao` por padrão é `(2, 1)`
+
+```python
+imagem = criar_imagem("imagem.png")
 ```
 
 ---
@@ -172,6 +182,7 @@ canvas.desenhar({(1,1): "X"}, (2,2))
 * `desenhar_elipse(...)`
 * `desenhar_texto(...)`
 * `desenhar_linhas(...)`
+* `desenhar_imagem(...)`
 
 Exemplo:
 
@@ -193,3 +204,39 @@ canvas.atualizar()
 
 > NOTA: Todas as funções de desenho alteram o canvas, mas só aparecem ao chamar `atualizar()`.
 
+---
+
+# Transformar
+
+### `transformar_deslocamento(forma, deslocamento: Vector2D)`
+
+* Move a forma em `deslocamento`.
+
+```python
+ponto = canvas.criar_ponto(
+    canvas.vec2d(0, 0),
+    "@"
+)
+ponto = canvas.transformar_deslocamento(
+    ponto,
+    (1, 1)
+)
+# move `ponto` em 1 coluna e 1 linha
+```
+
+### `transformar_tamanho(forma, tamanho: Vector2D)`
+
+* Aumenta a forma em `tamanho`
+
+```python
+ponto = canvas.criar_ponto(
+    canvas.vec2d(0, 0),
+    "@"
+)
+ponto = canvas.transformar_tamanho(
+    ponto,
+    (4, 4)
+)
+# aumenta o ponto
+# (1, 1) -> (4, 4)
+```

@@ -1,4 +1,5 @@
 from . import terminal as t
+from . import imagens as img
 from math import sqrt
 
 Vector2D = tuple[int, int]
@@ -150,6 +151,10 @@ def criar_linhas(pontos: list[Vector2D], caractere: str) -> dict[Vector2D, str]:
         tabela.update(criar_linha(pontos[i], pontos[i + 1], caractere))
     return tabela
 
+def criar_imagem(caminho: str, char: str | None = None) -> dict[Vector2D, str]:
+    """Cria uma imagem a partir de um caminho e retorna como dicionário de pontos."""
+    return img.imagem_para_canvas_map(caminho, char)
+
 # ======= DESENHAR FORMAS =======
 
 def desenhar(tabela: dict[Vector2D, str], deslocamento: Vector2D = (0, 0)):
@@ -200,9 +205,67 @@ def desenhar_linhas(pontos: list[Vector2D], caractere: str):
     desenhar_forma(tabela)
     return list(tabela.keys())
 
+def desenhar_imagem(caminho: str):
+    """Cria e desenha uma imagem no canvas."""
+    tabela = criar_imagem(caminho)
+    desenhar_forma(tabela)
+    return list(tabela.keys())
+
 def atualizar():
     """Renderiza todo o canvas no terminal linha por linha."""
     canvas = gerar_canvas_lista()
     conteudo = "\n".join("".join(linha) for linha in canvas)
     t.escreva("\n" + conteudo)
     t.atualizar()
+
+# Vetor2
+def _maior_vetor(forma: dict[Vector2D, str]) -> Vector2D:
+    """Retorna o maior ponto da forma."""
+    vec = (0, 0)
+    for posicao in forma.keys():
+        if posicao[0] > vec[0]:
+            vec = (posicao[0], vec[1])
+        if posicao[1] > vec[1]:
+            vec = (vec[0], posicao[1])
+    return vec
+
+def _menor_vetor(forma: dict[Vector2D, str]) -> Vector2D:
+    """Retorna o menor ponto da forma."""
+    vec = _maior_vetor(forma)
+    for posicao in forma.keys():
+        if posicao[0] < vec[0]:
+            vec = (posicao[0], vec[1])
+        if posicao[1] < vec[1]:
+            vec = (vec[0], posicao[1])
+    return vec
+
+def _delta_vetor(v1: Vector2D, v2: Vector2D) -> Vector2D:
+    """Retorna o delta entre dois vetores."""
+    x = abs(v1[0] - v2[0])
+    y = abs(v1[1] - v2[1])
+    return (x, y)
+
+def area_da_forma(forma: dict[Vector2D, str]) -> Vector2D:
+    """Retorna a area da forma."""
+    return _maior_vetor(forma)
+
+def transformar_deslocamento(forma: dict[Vector2D, str], deslocamento: Vector2D) -> dict[Vector2D, str]:
+    """Desloca uma forma."""
+    tabela: dict[Vector2D, str] = {}
+    for posicao, caractere in forma.items():
+        tabela[somar_vetores(posicao, deslocamento)] = caractere
+    return tabela
+
+def transformar_tamanho(forma: dict[Vector2D, str], aumento: Vector2D) -> dict[Vector2D, str]:
+    """Aumenta uma forma proporcionalmente no eixo X e Y."""
+    ax, ay = aumento
+    nova_forma: dict[Vector2D, str] = {}
+    for (x, y), ch in forma.items():
+        for dy in range(ay):
+            for dx in range(ax):
+                nova_forma[(x * ax + dx, y * ay + dy)] = ch
+    return nova_forma
+
+def transformar(forma: dict[Vector2D, str], deslocamento: Vector2D = (0, 0), aumento: Vector2D = (1, 1)) -> dict[Vector2D, str]:
+    """Desloca e aumenta uma forma."""
+    return transformar_tamanho(transformar_deslocamento(forma, deslocamento), aumento)
