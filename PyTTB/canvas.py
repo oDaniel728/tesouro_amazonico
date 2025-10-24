@@ -1,12 +1,34 @@
+import sys
+from typing import Callable
 from . import terminal as t
 from . import imagens as img
+from . plugins import buffer
 from math import sqrt
 
 Vector2D = tuple[int, int]
-canvas_points: dict[Vector2D, str] = {}
+CanvasTable = dict[Vector2D, str]
+Canvas2DList = list[list[str]]
+canvas_points: CanvasTable = {}
+last_cp = canvas_points.copy()
 PREENCHER = "_P"
 
-redimensionar = t.mudar_tamanho_do_terminal
+def _houve_mudanca_no_canvas() -> bool:
+    return last_cp != canvas_points
+
+def _canvas_mudou() -> bool:
+    global last_cp
+    if _houve_mudanca_no_canvas():
+        last_cp = canvas_points.copy()
+        return True
+    return False
+
+def pegar_ponto(em: Vector2D, padrao: str = ' ') -> str:
+    """Pega um caractere localizado em `em`"""
+    return canvas_points.get(em, padrao)
+
+def redimensionar(tamanho: Vector2D, proporcao: Vector2D = (2, 1)) -> None:
+    """Muda o tamanho do terminal"""
+    t.mudar_tamanho_do_terminal(*(tamanho[0] * proporcao[0], tamanho[1] * proporcao[1]))
 
 def somar_vetores(vetor1: Vector2D, vetor2: Vector2D) -> Vector2D:
     """Soma dois vetores 2D e retorna o resultado."""
@@ -43,7 +65,7 @@ def apagar_canvas():
     """Remove todos os pontos do canvas."""
     canvas_points.clear()
 
-def apagar(pontos: dict[Vector2D, str] | list[tuple[Vector2D, str]]):
+def apagar(pontos: CanvasTable | list[tuple[Vector2D, str]]):
     """Remove pontos específicos do canvas, podendo ser dict ou lista de pontos."""
     if isinstance(pontos, dict):
         for posicao in pontos.keys():
@@ -52,25 +74,27 @@ def apagar(pontos: dict[Vector2D, str] | list[tuple[Vector2D, str]]):
         for posicao, _ in pontos:
             canvas_points.pop(posicao, None)
 
-def gerar_canvas_lista() -> list[list[str]]:
+def gerar_canvas_lista() -> Canvas2DList:
     """Retorna o canvas completo como uma lista 2D de caracteres."""
     largura, altura = t.pegar_tamanho_do_terminal()
-    canvas_2d: list[list[str]] = []
+    canvas_2d: Canvas2DList = []
     for y in range(altura):
         linha = []
         for x in range(largura):
+            if (x, y) in canvas_points and canvas_points[(x, y)] == ' ':
+                continue
             linha.append(canvas_points.get((x, y), ' '))
         canvas_2d.append(linha)
     return canvas_2d
 
 # ======= CRIAR FORMAS =======
 
-def criar_ponto(posicao: Vector2D, caractere: str) -> dict[Vector2D, str]:
+def criar_ponto(posicao: Vector2D, caractere: str) -> CanvasTable:
     """Cria um ponto e retorna como dicionário de posições e caracteres."""
     x, y = posicao
     return {(x, y): caractere}
 
-def criar_linha(pos_inicial: Vector2D, pos_final: Vector2D, caractere: str) -> dict[Vector2D, str]:
+def criar_linha(pos_inicial: Vector2D, pos_final: Vector2D, caractere: str) -> CanvasTable:
     """Cria uma linha entre dois pontos e retorna como dicionário de posições e caracteres."""
     x1, y1 = pos_inicial
     x2, y2 = pos_final
@@ -79,7 +103,7 @@ def criar_linha(pos_inicial: Vector2D, pos_final: Vector2D, caractere: str) -> d
     passo_x = 1 if x1 < x2 else -1
     passo_y = 1 if y1 < y2 else -1
     erro = delta_x - delta_y
-    tabela: dict[Vector2D, str] = {}
+    tabela: CanvasTable = {}
     while True:
         tabela[(x1, y1)] = caractere
         if x1 == x2 and y1 == y2:
@@ -93,9 +117,9 @@ def criar_linha(pos_inicial: Vector2D, pos_final: Vector2D, caractere: str) -> d
             y1 += passo_y
     return tabela
 
-def criar_retangulo(pos_inicial: Vector2D, pos_final: Vector2D, borda: str, preenchimento: str | bool | None = None) -> dict[Vector2D, str]:
+def criar_retangulo(pos_inicial: Vector2D, pos_final: Vector2D, borda: str, preenchimento: str | bool | None = None) -> CanvasTable:
     """Cria um retângulo com borda e opcional preenchimento e retorna como dicionário de pontos."""
-    tabela: dict[Vector2D, str] = {}
+    tabela: CanvasTable = {}
     x1, y1 = pos_inicial
     x2, y2 = pos_final
     for x in range(min(x1, x2), max(x1, x2)+1):
@@ -108,9 +132,9 @@ def criar_retangulo(pos_inicial: Vector2D, pos_final: Vector2D, borda: str, pree
                 tabela[(x, y)] = preenchimento
     return tabela
 
-def criar_circulo(centro: Vector2D, raio: int, borda: str, preenchimento: str | None = None) -> dict[Vector2D, str]:
+def criar_circulo(centro: Vector2D, raio: int, borda: str, preenchimento: str | None = None) -> CanvasTable:
     """Cria um círculo com borda e opcional preenchimento e retorna como dicionário de pontos."""
-    tabela: dict[Vector2D, str] = {}
+    tabela: CanvasTable = {}
     cx, cy = centro
     for y in range(cy - raio, cy + raio + 1):
         for x in range(cx - raio, cx + raio + 1):
@@ -121,9 +145,9 @@ def criar_circulo(centro: Vector2D, raio: int, borda: str, preenchimento: str | 
                 tabela[(x, y)] = preenchimento
     return tabela
 
-def criar_elipse(centro: Vector2D, raio_x: int, raio_y: int, borda: str, preenchimento: str | None = None) -> dict[Vector2D, str]:
+def criar_elipse(centro: Vector2D, raio_x: int, raio_y: int, borda: str, preenchimento: str | None = None) -> CanvasTable:
     """Cria uma elipse com borda e opcional preenchimento e retorna como dicionário de pontos."""
-    tabela: dict[Vector2D, str] = {}
+    tabela: CanvasTable = {}
     cx, cy = centro
     for y in range(cy - raio_y, cy + raio_y + 1):
         for x in range(cx - raio_x, cx + raio_x + 1):
@@ -136,31 +160,31 @@ def criar_elipse(centro: Vector2D, raio_x: int, raio_y: int, borda: str, preench
                 tabela[(x, y)] = preenchimento
     return tabela
 
-def criar_texto(pos_inicial: Vector2D, texto: str) -> dict[Vector2D, str]:
+def criar_texto(pos_inicial: Vector2D, texto: str) -> CanvasTable:
     """Cria um texto como tabela de pontos a partir da posição inicial."""
-    tabela: dict[Vector2D, str] = {}
+    tabela: CanvasTable = {}
     x, y = pos_inicial
     for i, caractere in enumerate(texto):
         tabela[(x + i, y)] = caractere
     return tabela
 
-def criar_linhas(pontos: list[Vector2D], caractere: str) -> dict[Vector2D, str]:
+def criar_linhas(pontos: list[Vector2D], caractere: str) -> CanvasTable:
     """Cria uma série de linhas conectando os pontos em sequência (polilinha)."""
-    tabela: dict[Vector2D, str] = {}
+    tabela: CanvasTable = {}
     for i in range(len(pontos) - 1):
         tabela.update(criar_linha(pontos[i], pontos[i + 1], caractere))
     return tabela
 
-def criar_imagem(caminho: str, char: str | None = None) -> dict[Vector2D, str]:
+def criar_imagem(caminho: str, char: str | None = None) -> CanvasTable:
     """Cria uma imagem a partir de um caminho e retorna como dicionário de pontos."""
     return img.imagem_para_canvas_map(caminho, char)
 
 # ======= DESENHAR FORMAS =======
 
-def desenhar(tabela: dict[Vector2D, str], deslocamento: Vector2D = (0, 0)):
+def desenhar(tabela: CanvasTable, deslocamento: Vector2D = (0, 0)):
     """Desenha uma tabela de pontos no canvas, aplicando um deslocamento opcional."""
-    for posicao, caractere in tabela.items():
-        canvas_points[somar_vetores(posicao, deslocamento)] = caractere
+    dx, dy = deslocamento
+    canvas_points.update({(x + dx, y + dy): c for (x, y), c in tabela.items()})
 desenhar_forma = desenhar
 
 def desenhar_ponto(posicao: Vector2D, caractere: str):
@@ -211,15 +235,18 @@ def desenhar_imagem(caminho: str):
     desenhar_forma(tabela)
     return list(tabela.keys())
 
-def atualizar():
+def renderizar():
     """Renderiza todo o canvas no terminal linha por linha."""
-    canvas = gerar_canvas_lista()
-    conteudo = "\n".join("".join(linha) for linha in canvas)
-    t.escreva("\n" + conteudo)
-    t.atualizar()
+    if not _canvas_mudou(): return
+    buffer.escrever_buffer(gerar_canvas_lista())
+
+def atualizar():
+    """Força atualização do canvas (flush)."""
+    # if not _canvas_mudou(): return
+    sys.stdout.flush()
 
 # Vetor2
-def _maior_vetor(forma: dict[Vector2D, str]) -> Vector2D:
+def _maior_vetor(forma: CanvasTable) -> Vector2D:
     """Retorna o maior ponto da forma."""
     vec = (0, 0)
     for posicao in forma.keys():
@@ -229,7 +256,7 @@ def _maior_vetor(forma: dict[Vector2D, str]) -> Vector2D:
             vec = (vec[0], posicao[1])
     return vec
 
-def _menor_vetor(forma: dict[Vector2D, str]) -> Vector2D:
+def _menor_vetor(forma: CanvasTable) -> Vector2D:
     """Retorna o menor ponto da forma."""
     vec = _maior_vetor(forma)
     for posicao in forma.keys():
@@ -245,27 +272,67 @@ def _delta_vetor(v1: Vector2D, v2: Vector2D) -> Vector2D:
     y = abs(v1[1] - v2[1])
     return (x, y)
 
-def area_da_forma(forma: dict[Vector2D, str]) -> Vector2D:
+def area_da_forma(forma: CanvasTable) -> Vector2D:
     """Retorna a area da forma."""
     return _maior_vetor(forma)
 
-def transformar_deslocamento(forma: dict[Vector2D, str], deslocamento: Vector2D) -> dict[Vector2D, str]:
+def transformar_deslocamento(forma: CanvasTable, deslocamento: Vector2D) -> CanvasTable:
     """Desloca uma forma."""
-    tabela: dict[Vector2D, str] = {}
+    tabela: CanvasTable = {}
     for posicao, caractere in forma.items():
         tabela[somar_vetores(posicao, deslocamento)] = caractere
     return tabela
 
-def transformar_tamanho(forma: dict[Vector2D, str], aumento: Vector2D) -> dict[Vector2D, str]:
+def transformar_tamanho(forma: CanvasTable, aumento: Vector2D) -> CanvasTable:
     """Aumenta uma forma proporcionalmente no eixo X e Y."""
     ax, ay = aumento
-    nova_forma: dict[Vector2D, str] = {}
+    nova_forma: CanvasTable = {}
     for (x, y), ch in forma.items():
         for dy in range(ay):
             for dx in range(ax):
                 nova_forma[(x * ax + dx, y * ay + dy)] = ch
     return nova_forma
 
-def transformar(forma: dict[Vector2D, str], deslocamento: Vector2D = (0, 0), aumento: Vector2D = (1, 1)) -> dict[Vector2D, str]:
+def transformar_tamanho_dividir(forma: dict[tuple[int,int], str], divisao: tuple[int,int]) -> dict[tuple[int,int], str]:
+    """Diminui uma forma proporcionalmente no eixo X e Y."""
+    dx, dy = divisao
+    if dx <= 0 or dy <= 0:
+        raise ValueError("Divisão deve ser maior que zero")
+    
+    nova_forma: dict[tuple[int,int], str] = {}
+    for (x, y), ch in forma.items():
+        nx = x // dx
+        ny = y // dy
+        nova_forma[(nx, ny)] = ch
+    return nova_forma
+
+def transformar(forma: CanvasTable, deslocamento: Vector2D = (0, 0), aumento: Vector2D = (1, 1)) -> CanvasTable:
     """Desloca e aumenta uma forma."""
     return transformar_tamanho(transformar_deslocamento(forma, deslocamento), aumento)
+
+def tamanho(forma: CanvasTable) -> Vector2D:
+    """Traz o tamanho da forma"""
+    return somar_vetores(_maior_vetor(forma), (1, 1))
+
+def posicao(forma: CanvasTable) -> Vector2D:
+    """Traz a posição da forma"""
+    return _menor_vetor(forma)
+
+def componente(func: Callable[[], CanvasTable]) -> CanvasTable:
+    """Retorna o componente da forma."""
+    return func()
+
+def modelar_unir(*formas: CanvasTable) -> CanvasTable:
+    """Mescla duas formas."""
+    r = {}
+    for forma in formas:
+        r.update(forma)
+    return r
+
+def modelar_negar(forma1: CanvasTable, forma2: CanvasTable) -> CanvasTable:
+    """Retorna a diferenca entre duas formas."""
+    r = {}
+    for posicao, caractere in forma1.items():
+        if posicao not in forma2.keys():
+            r[posicao] = caractere
+    return r

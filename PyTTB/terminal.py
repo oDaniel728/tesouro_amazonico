@@ -1,3 +1,5 @@
+import ctypes
+import sys
 from typing import TypeVar; _T = TypeVar("_T")
 
 from .utilidades import limitar_inteiro
@@ -19,17 +21,17 @@ def limpar_tela():
 def escreva(texto: str):
     """Escreve texto sem pular linha."""
     
-    print(texto, end='', flush=False)
+    sys.stdout.write(texto)
 
 def escreval(texto: str):
     """Escreve texto e pula uma linha."""
     
-    escreva(texto + "\n")
+    sys.stdout.write(texto + "\n")
 
 def atualizar():
     """Força atualização do terminal (flush)."""
     
-    print('', end='', flush=True)
+    sys.stdout.flush()
 
 def leia(tipo: type[_T]) -> _T:
     """Lê entrada do usuário e converte para o tipo informado.
@@ -85,6 +87,169 @@ def mudar_titulo(titulo: str):
     """Muda o título do terminal."""
     
     rodar_comando(f"title {titulo}", f"echo -ne '\033]0;{titulo}\007'")
+
+def esconder_cursor():
+    """Esconde o cursor no terminal."""
+    escreva("\033[?25l")
+
+def mostrar_cursor():
+    """Mostra o cursor no terminal."""
+    escreva("\033[?25h")
+
+def mudar_icone(caminho: str):
+    """Muda o ícone da janela do terminal no Windows usando um arquivo .ico."""
+    if sys.platform != "win32":
+        return  # Funciona apenas no Windows
+
+    hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+    if not hwnd:
+        return  # Sem janela de console ativa
+
+    # Carrega o ícone (.ico)
+    ICON_SMALL = 0
+    ICON_BIG = 1
+    LR_LOADFROMFILE = 0x00000010
+    hicon = ctypes.windll.user32.LoadImageW(0, caminho, 1, 0, 0, LR_LOADFROMFILE)
+    if hicon:
+        ctypes.windll.user32.SendMessageW(hwnd, 0x80, ICON_SMALL, hicon)  # WM_SETICON pequeno
+        ctypes.windll.user32.SendMessageW(hwnd, 0x80, ICON_BIG, hicon)    # WM_SETICON grande
+# region FONTE
+import os
+import sys
+import ctypes
+from ctypes import wintypes
+
+# --- Estrutura da fonte do console (Windows) ---
+class CONSOLE_FONT_INFOEX(ctypes.Structure):
+    _fields_ = [
+        ("cbSize", wintypes.ULONG),
+        ("nFont", wintypes.DWORD),
+        ("dwFontSize", wintypes._COORD),
+        ("FontFamily", wintypes.UINT),
+        ("FontWeight", wintypes.UINT),
+        ("FaceName", wintypes.WCHAR * 32)
+    ]
+
+def mudar_tamanho_da_fonte(tamanho: int):
+    """Muda o tamanho da fonte do terminal."""
+    if os.name == "nt":
+        hnd = ctypes.windll.kernel32.GetStdHandle(-11)
+        font = CONSOLE_FONT_INFOEX()
+        font.cbSize = ctypes.sizeof(CONSOLE_FONT_INFOEX)
+        ctypes.windll.kernel32.GetCurrentConsoleFontEx(hnd, False, ctypes.byref(font))
+        font.dwFontSize.Y = tamanho
+        ctypes.windll.kernel32.SetCurrentConsoleFontEx(hnd, False, ctypes.byref(font))
+    else:
+        # Linux não suporta via terminal
+        print("\033[0m", end="")  # placeholder sem efeito
+        return False
+
+def mudar_fonte_do_terminal(fonte: str):
+    """Muda a fonte do terminal."""
+    if os.name == "nt":
+        hnd = ctypes.windll.kernel32.GetStdHandle(-11)
+        font = CONSOLE_FONT_INFOEX()
+        font.cbSize = ctypes.sizeof(CONSOLE_FONT_INFOEX)
+        ctypes.windll.kernel32.GetCurrentConsoleFontEx(hnd, False, ctypes.byref(font))
+        font.FaceName = fonte
+        ctypes.windll.kernel32.SetCurrentConsoleFontEx(hnd, False, ctypes.byref(font))
+    else:
+        # Linux: requer emulador gráfico
+        print("\033[0m", end="")  # sem efeito real
+        return False
+
+def pegar_tamanho_da_fonte() -> int:
+    """Retorna o tamanho atual da fonte."""
+    if os.name == "nt":
+        hnd = ctypes.windll.kernel32.GetStdHandle(-11)
+        font = CONSOLE_FONT_INFOEX()
+        font.cbSize = ctypes.sizeof(CONSOLE_FONT_INFOEX)
+        ctypes.windll.kernel32.GetCurrentConsoleFontEx(hnd, False, ctypes.byref(font))
+        return font.dwFontSize.Y
+    else:
+        return -1  # sem suporte
+
+def pegar_fonte_do_terminal() -> str:
+    """Retorna o nome da fonte atual."""
+    if os.name == "nt":
+        hnd = ctypes.windll.kernel32.GetStdHandle(-11)
+        font = CONSOLE_FONT_INFOEX()
+        font.cbSize = ctypes.sizeof(CONSOLE_FONT_INFOEX)
+        ctypes.windll.kernel32.GetCurrentConsoleFontEx(hnd, False, ctypes.byref(font))
+        return font.FaceName
+    else:
+        return "desconhecida"
+# endregion
+
+# region MOUSE
+
+import sys
+import os
+import platform
+
+if os.name == 'nt':
+    import msvcrt
+    import ctypes
+    from ctypes import wintypes
+
+    STD_INPUT_HANDLE = -10
+    ENABLE_MOUSE_INPUT = 0x0010
+    ENABLE_EXTENDED_FLAGS = 0x0080
+
+    class MOUSE_EVENT_RECORD(ctypes.Structure):
+        _fields_ = [
+            ("dwMousePosition", wintypes._COORD),
+            ("dwButtonState", wintypes.DWORD),
+            ("dwControlKeyState", wintypes.DWORD),
+            ("dwEventFlags", wintypes.DWORD),
+        ]
+
+    class INPUT_RECORD(ctypes.Structure):
+        class Event(ctypes.Union):
+            _fields_ = [("MouseEvent", MOUSE_EVENT_RECORD),
+                        ("KeyEvent", wintypes.BYTE * 16)]
+        _fields_ = [("EventType", wintypes.WORD),
+                    ("Event", Event)]
+
+    def selecionado():
+        handle = ctypes.windll.kernel32.GetStdHandle(STD_INPUT_HANDLE)
+        ctypes.windll.kernel32.SetConsoleMode(handle, ENABLE_MOUSE_INPUT | ENABLE_EXTENDED_FLAGS)
+        rec = INPUT_RECORD()
+        read = wintypes.DWORD()
+        while True:
+            if ctypes.windll.kernel32.ReadConsoleInputW(handle, ctypes.byref(rec), 1, ctypes.byref(read)):
+                if rec.EventType == 0x0002:  # MOUSE_EVENT
+                    x = rec.Event.MouseEvent.dwMousePosition.X # type: ignore
+                    y = rec.Event.MouseEvent.dwMousePosition.Y # type: ignore
+                    if rec.Event.MouseEvent.dwButtonState != 0: # type: ignore
+                        return (x, y)
+else:
+    import tty
+    import termios
+
+    def selecionado():
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        tty.setcbreak(fd)
+        sys.stdout.write("\033[?1000h")  # habilita mouse
+        sys.stdout.flush()
+        try:
+            while True:
+                c = sys.stdin.read(1)
+                if c == "\x1b":  # ESC
+                    seq = sys.stdin.read(5)
+                    if seq.startswith("[M"):
+                        b = ord(seq[2]) - 32
+                        x = ord(seq[3]) - 32 - 1
+                        y = ord(seq[4]) - 32 - 1
+                        if b & 0b11:  # botão pressionado
+                            return (x, y)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old)
+            sys.stdout.write("\033[?1000l")
+            sys.stdout.flush()
+
+# endregion
 
 # Cores de texto (foreground)
 PRETO    = FG_BLACK   = "\033[30m"
@@ -205,3 +370,9 @@ def bgcor_hex(hex_code: str) -> str:
     hex_code = hex_code.lstrip('#')
     r, g, b = int(hex_code[0:2], 16), int(hex_code[2:4], 16), int(hex_code[4:6], 16)
     return bgcor_rgb(r, g, b)
+
+def pegar_cor_de_caractere(char: str) -> tuple[int, int, int]:
+    import re
+    # formato: f"\033[48;2;{r};{g};{b}m"
+    match = re.search(r"\033\[(?:48|38);2;(\d+);(\d+);(\d+)m", char)
+    return tuple(int(c) for c in match.groups()) # type: ignore

@@ -1,5 +1,7 @@
 import tkinter as tk
 from typing import TypeAlias
+from .plugins import tiles
+from .terminal import pegar_cor_de_caractere
 
 rgb: TypeAlias = tuple[int, int, int]
 rgba: TypeAlias = tuple[int, int, int, int]
@@ -28,6 +30,21 @@ def carregar_imagem(caminho: str) -> rgba_map:
     root.destroy()  # libera recursos
     return matriz
 
+alpha_map = ( dict[tuple[int, int], str] ) \
+(   # {(min, max) : char}
+    {
+        (0, 16): tiles.fazer_parede_cheia(5),
+        (17, 64): tiles.fazer_parede_cheia(4),
+        (65, 128): tiles.fazer_parede_cheia(3),
+        (128, 176): tiles.fazer_parede_cheia(2),
+        (177, 255): tiles.fazer_parede_cheia(1)
+    }
+)
+def _pegar_alpha_map(alpha: int) -> str:
+    for (min, max), char in alpha_map.items():
+        if min <= alpha <= max:
+            return char
+    return ' '
 
 def converter_rgba_map(matriz: rgba_map) -> rgbchar_map:
     """Converte RGBA para par (RGB, caractere)."""
@@ -35,10 +52,7 @@ def converter_rgba_map(matriz: rgba_map) -> rgbchar_map:
     for linha in matriz:
         nova = []
         for r, g, b, a in linha:
-            if a < 128:
-                nova.append(((0, 0, 0), " "))  # transparente vira espaço
-            else:
-                nova.append(((r, g, b), "#"))  # usa '#' como caractere padrão
+            nova.append(((r, g, b), _pegar_alpha_map(a)))
         resultado.append(nova)
     return resultado
 
@@ -58,6 +72,7 @@ def converter_em_canvas_table(
             cor = colorir_texto(rgb, ch if not char else char)
             for dy in range(escala_y):
                 for dx in range(escala_x):
+                    if pegar_cor_de_caractere(cor) == (0, 0, 0): continue
                     tabela[(x * escala_x + dx, y * escala_y + dy)] = cor
     return tabela
 
