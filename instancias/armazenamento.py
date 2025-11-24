@@ -6,14 +6,15 @@ _valor = object
 _pson = str
 
 vars = dicionario.criar()
+_estados = []
 
 def criar(nome: _chave, valor: _valor) -> _pson:
     if isinstance(valor, list):
         for v in valor:
             i = valor.index(v)
-            dicionario.adicionar(vars, f"{nome}[{i}]", v, False)
+            dicionario.adicionar(vars, f"{nome}[{i}]", v)
     else:
-        dicionario.adicionar(vars, nome, valor, False)
+        dicionario.adicionar(vars, nome, valor)
     return nome
 
 def remover(nome: _chave) -> None:
@@ -30,8 +31,8 @@ def mudador(nome: _chave):
         mudar_valor(nome, v)
     return _f
 
-def estado(nome: _chave, padrao: _valor = None):
-    return [pegador(nome, padrao), mudador(nome)]
+def add_estado(nome: _chave, estado):
+    _estados.append([nome, estado])
 
 def pegar(nome: _chave, padrao: _valor = None) -> _valor:
     if not dicionario.chave_existe(vars, nome):
@@ -55,6 +56,8 @@ def para_texto() -> str:
     return r
 
 def exportar() -> None:
+    for nome, estado in _estados:
+        dicionario.adicionar(vars, nome, estado())
     utils.escrever_arquivo(para_texto(), 'vars.pson')
 
 def carregar() -> None:

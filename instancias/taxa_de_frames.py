@@ -1,4 +1,4 @@
-from renderizador._aguarde import aguarde as __aguarde
+from utils.aguarde import aguarde as __aguarde
 
 def para_frame(fps: int, frames: int = 1) -> float:
     return 1 / (fps * frames)

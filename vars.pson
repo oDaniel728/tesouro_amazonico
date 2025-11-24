@@ -1,12 +1,2 @@
-idk:bool=True;
-idk2[0]:int=0;
-idk2[1]:int=1;
-idk2[2]:int=2;
-idk2[3]:int=3;
-idk2[4]:int=4;
-idk2[5]:int=5;
-idk2[6]:int=6;
-idk2[7]:int=7;
-idk2[8]:int=8;
-idk2[9]:int=9;
-score:int=30;
+lang:int=0;
+tutorial_passed:bool=True;

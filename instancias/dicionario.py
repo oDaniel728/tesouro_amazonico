@@ -77,8 +77,8 @@ def adicionar(dicionario: _dicionario, chave: _chave, valor: _valor, remover_dup
         valor (_valor): valor, signifcado
     """
     if remover_duplicatas:
-            if chave_existe(dicionario, chave):
-                remover(dicionario, chave)
+        if chave_existe(dicionario, chave):
+            remover(dicionario, chave)
     dicionario.append([chave, valor])
 
 
@@ -128,16 +128,6 @@ def limpar(dicionario: _dicionario) -> _dicionario:
     dicionario.clear()
     return dicionario
 
-def pesquisar(dicionario: _dicionario, chave: _chave) -> _dicionario:
-    """pesquisa um dicionari
-
-    Args:
-        dicionario (_dicionario): instância de um dicionario
-        chave (_chave): chave que deseja procurar
-
-    Returns:
-        _dicionario: instância de um dicionario
-    """
 
 def chave_existe(dicionario: _dicionario, chave: _chave) -> bool:
     """erifica se há uma chave em um dicionari
@@ -150,8 +140,8 @@ def chave_existe(dicionario: _dicionario, chave: _chave) -> bool:
         bool: se ela existe
     """
     for item in dicionario:
-        chave, _ = item
-        if chave == chave:
+        k, _ = item
+        if k == chave:
             return True
     return False
 
