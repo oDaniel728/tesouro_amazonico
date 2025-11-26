@@ -1,5 +1,6 @@
 from instancias import dicionario
-import utils
+from utils.arquivos import existe_arquivo, ler_arquivo, escrever_arquivo
+from utils import converter
 
 _chave = str
 _valor = object
@@ -31,8 +32,8 @@ def mudador(nome: _chave):
         mudar_valor(nome, v)
     return _f
 
-def add_estado(nome: _chave, estado):
-    _estados.append([nome, estado])
+def add_estado(nome: _chave, getter):
+    _estados.append([nome, getter])
 
 def pegar(nome: _chave, padrao: _valor = None) -> _valor:
     if not dicionario.chave_existe(vars, nome):
@@ -47,7 +48,9 @@ def possui_valor(nome: _chave) -> bool:
     return dicionario.chave_existe(vars, nome)
 
 def limpar() -> None:
-    dicionario.limpar(vars)
+    vars.clear()
+    _estados.clear()
+    exportar()
 
 def para_texto() -> str:
     r = ''
@@ -58,12 +61,12 @@ def para_texto() -> str:
 def exportar() -> None:
     for nome, estado in _estados:
         dicionario.adicionar(vars, nome, estado())
-    utils.escrever_arquivo(para_texto(), 'vars.pson')
+    escrever_arquivo(para_texto(), 'vars.pson')
 
 def carregar() -> None:
-    if not utils.existe_arquivo('vars.pson'):
+    if not existe_arquivo('vars.pson'):
         return
-    txt = utils.ler_arquivo('vars.pson')
-    d = utils.converter.pegar_valor_dicionario(txt)
+    txt = ler_arquivo('vars.pson')
+    d = converter.pegar_valor_dicionario(txt)
     for k, v in d:
         dicionario.adicionar(vars, k, v)

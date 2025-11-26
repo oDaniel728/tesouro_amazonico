@@ -3,7 +3,7 @@ import os
 from instancias import armazenamento, fcontainer, estado, cor4, timeline
 from enums import teclas
 from utils.termux import mudar_titulo_do_terminal
-from utils.lapis import escrever_texto
+from utils.lapis import BAIXO, escrever_texto
 from random import randint
 
 armazenamento.carregar()
@@ -21,15 +21,15 @@ def __curkey_changed(old, new):
 
 [get_running, set_running] = estado.criar(True)
 
-[get_debug, set_debug] = estado.criar(True)
-set_debug(True)
+[get_debug, set_debug] = estado.criar(False)
+# set_debug(True) # Mude para False para jogar normalmente
 
 [get_event, set_event] = estado.criar('')
 
 def __scene_changed(old, new):
     set_event('change_scene')
+    set_frame(-1)
 [get_scene, set_scene] = estado.criar(0, __scene_changed)
-
 
 # endregion
 
@@ -67,7 +67,7 @@ armazenamento.add_estado("tutorial_passed", get_tutorial_passed)
 [get_x, set_x] = estado.criar(0)
 [get_y, set_y] = estado.criar(0)
 [get_max_pos, set_max_pos] = estado.criar([5, 5])
-pistas = list[str]()
+pistas = list[str]() # Esta variável parece não estar sendo usada, 'dicas' é usada em seu lugar
 
 posicoes = []
 def _add_pos(x: int, y: int):
@@ -83,7 +83,7 @@ def __dimentions_changed(old, new):
 [get_tesouro_pos, set_tesouro_pos] = estado.criar([0, 0])
 [get_durability, set_durability] = estado.criar(0)
 
-dicas = ['']
+dicas = [''] # Esta é a lista global correta que está sendo usada
 
 areas_achadas = []
 # [[x1, y1], [x2, y2]]
@@ -105,6 +105,10 @@ def dentro_de_areas_achadas(x: int, y: int) -> bool:
 [get_mode, set_mode] = estado.criar(0)
 MODO_X = 0
 MODO_Y = 1
+
+def __notif_changed(old, new):
+    set_event('change_notif')
+[get_notif, set_notif] = estado.criar('')
 # endregion
 
 def gerar_caixas(scr: curses.window, colunas: int, linhas: int):
@@ -126,6 +130,17 @@ def gerar_caixas(scr: curses.window, colunas: int, linhas: int):
                 caixas.append([[cx, cy], [col, lin]])
 
         return caixas
+
+# ganhou fácil (?)
+[get_gfacil, set_gfacil] = estado.criar(armazenamento.pegar('gfacil', False))
+# ganhou médio (?)
+[get_gmedio, set_gmedio] = estado.criar(armazenamento.pegar('gmedio', False))
+# ganhou difícil (?)
+[get_gdificil, set_gdificil] = estado.criar(armazenamento.pegar('gdificil', False))
+
+armazenamento.add_estado('gfacil', get_gfacil)
+armazenamento.add_estado('gmedio', get_gmedio)
+armazenamento.add_estado('gdificil', get_gdificil)
 
 # region curses setup
 curses.initscr()
@@ -237,6 +252,7 @@ def loop(scr: curses.window, delta: float):
         padding_x: int = 15
 
         if f == 0: 
+            set_dimensions([12, 48])
             mudar_titulo_do_terminal(trd("Tesouro Amazônico", "Amazonic Treasure Hunt"))
             scr.erase()
             escrever_texto(scr, trd("TESOURO  AMAZÔNICO", "AMAZONIC TREASURE HUNT"), -1, 2, PAR_VERDE_FUNDO_PRETO, 0)
@@ -277,12 +293,16 @@ def loop(scr: curses.window, delta: float):
             escrever_texto(scr, "[1]:", -1, 4, PAR_NORMAL, -1, padx=padding_x, offset_x=1)
         
         if f == 2: 
-            escrever_texto(scr, trd("Médio", "Normal"), -1, 5, PAR_NORMAL, 1, padx=padding_x, offset_x=1)
-            escrever_texto(scr, "[2]:", -1, 5, PAR_NORMAL, -1, padx=padding_x, offset_x=1)
+            par = PAR_NORMAL
+            if not get_gfacil(): par = PAR_SEC
+            escrever_texto(scr, trd("Médio", "Normal"), -1, 5, par, 1, padx=padding_x, offset_x=1)
+            escrever_texto(scr, "[2]:", -1, 5, par, -1, padx=padding_x, offset_x=1)
         
         if f == 3: 
-            escrever_texto(scr, trd("Difícil", "Hard"), -1, 6, PAR_NORMAL, 1, padx=padding_x, offset_x=1)
-            escrever_texto(scr, "[3]:", -1, 6, PAR_NORMAL, -1, padx=padding_x, offset_x=1)
+            par = PAR_NORMAL
+            if not get_gmedio(): par = PAR_SEC
+            escrever_texto(scr, trd("Difícil", "Hard"), -1, 6, par, 1, padx=padding_x, offset_x=1)
+            escrever_texto(scr, "[3]:", -1, 6, par, -1, padx=padding_x, offset_x=1)
 
         if f == 4: 
             escrever_texto(scr, trd("Voltar", "Back"), -1, 8, PAR_VERMELHO_FUNDO_PRETO, 1, padx=padding_x, offset_x=1)
@@ -296,11 +316,11 @@ def loop(scr: curses.window, delta: float):
             set_difficulty(DIFF_FACIL)
             set_scene(5)
 
-        elif key == (teclas.DIGIT2): # MEDIO
+        elif key == (teclas.DIGIT2) and get_gfacil(): # MEDIO
             set_difficulty(DIFF_NORMAL)
             set_scene(5)
 
-        elif key == (teclas.DIGIT3): # DIFICIL
+        elif key == (teclas.DIGIT3) and get_gmedio(): # DIFICIL
             set_difficulty(DIFF_DIFICIL)
             set_scene(5)
 
@@ -314,21 +334,28 @@ def loop(scr: curses.window, delta: float):
             return min
         else:
             return max
-
+    
+     
     def _criar_pista(x: int, y: int, tx: int, ty: int) -> str:
-        pos = x, y
-        tesouro = tx, ty
-
-        if x > tx:
-            return trd('mais ao oeste', 'further west')
-        elif x < tx:
-            return trd('mais ao leste', 'further east')
-        elif y > ty:
-            return trd('mais ao norte', 'further north')
-        elif y < ty:
-            return trd('mais ao sul', 'further south')
-        else:
-            return trd('você achou!', 'you found it!')
+        modo = get_mode()
+        
+        if modo == MODO_X:
+            if x > tx:
+                return trd('mais ao oeste', 'further west')
+            elif x < tx:
+                return trd('mais ao leste', 'further east')
+            else:
+                return trd('coluna correta!', 'correct column!')
+        
+        elif modo == MODO_Y:
+            if y > ty:
+                return trd('mais ao norte', 'further north')
+            elif y < ty:
+                return trd('mais ao sul', 'further south')
+            else:
+                return trd('linha correta!', 'correct row!')
+        
+        return "" # Não deve acontecer se a lógica de "found" estiver correta
 
     def JOGO(f: int): 
         x, y = get_x(), get_y()
@@ -373,10 +400,19 @@ def loop(scr: curses.window, delta: float):
 
             #! gerar tesouro
             maxx, maxy = get_max_pos()
-            set_tesouro_pos([randint(0, maxx - 1), randint(0, maxy - 1)]) # Corrigido para não gerar fora da grade
+            set_tesouro_pos([randint(0, maxx - 1), randint(0, maxy - 1)])
             
             # Gera as caixas apenas uma vez
             set_caixas(gerar_caixas(scr, *get_max_pos()))
+
+             
+            set_x(0)
+            set_y(0)
+            set_mode(MODO_X)
+            dicas.clear() # Limpa a lista de dicas
+            dicas.append('') # Adiciona a dica inicial vazia
+            areas_achadas.clear() # Limpa as áreas achadas
+
             return
 
         # Limpamos a tela no início de cada frame
@@ -386,30 +422,27 @@ def loop(scr: curses.window, delta: float):
         caixas = get_caixas()
 
         # === NOVA LÓGICA DE DESENHO ===
-        # Itera sobre cada caixa e decide sua cor antes de desenhar
         for caixa in caixas:
             (cx, cy), [col, lin] = caixa
             
-            # Cor padrão
-            attr = PAR_CAIXA_1
+            attr = PAR_CAIXA_1 # Cor padrão
             
-            # Verifica se é a caixa selecionada
             if col == x and lin == y:
-                attr = PAR_CAIXA_2
-            elif [col, lin] == get_tesouro_pos():
-                attr = PAR_AZUL_FUNDO_PRETO
-            # Verifica se está em uma área já descoberta (e deve ser escondida)
+                attr = PAR_CAIXA_2 # Caixa selecionada
+             
+            elif (get_debug() and ([col, lin] == get_tesouro_pos())):
+                attr = PAR_AZUL_FUNDO_PRETO # Mostra tesouro (debug)
             elif dentro_de_areas_achadas(col, lin):
-                attr = PAR_CAIXA_0
+                attr = PAR_CAIXA_0 # Área descoberta/errada
                 
-            # Desenha a caixa com a cor final decidida
             scr.addstr(cy, cx * 2, "  ", attr | curses.A_REVERSE)
-
-        # FIM DA NOVA LÓGICA
 
         # durabilidade
         durabilidade = get_durability()
-        escrever_texto(scr, trd(f"{durabilidade} Usos restantes", f"{durabilidade} Uses remaining"), -1, 0, PAR_DOURADO_FUNDO_PRETO, -1, offset_x=1, padx=2)
+        dur_cor = PAR_DOURADO_FUNDO_PRETO
+        if durabilidade <= 2: # Alerta de pouca durabilidade
+            dur_cor = PAR_VERMELHO_FUNDO_PRETO
+        escrever_texto(scr, trd(f"{durabilidade} Usos restantes", f"{durabilidade} Uses remaining"), -1, 0, dur_cor, -1, offset_x=1, padx=2)
 
         # rosa dos ventos
         escrever_texto(scr, trd("norte", "north") + "     ", -1, 0, PAR_NORMAL, 1)
@@ -417,7 +450,6 @@ def loop(scr: curses.window, delta: float):
         escrever_texto(scr, trd("      sul      ", "    south     "), -1, 2, PAR_NORMAL, 1)
         
         # dica mais recente
-        # CORREÇÃO: A variável global é `dicas`, não `pistas`
         if len(dicas) > 0:
             dica_mais_recente = dicas[-1]
             escrever_texto(scr, dica_mais_recente, -1, -1, PAR_NORMAL, -1, -1, offset_y=1)
@@ -426,8 +458,7 @@ def loop(scr: curses.window, delta: float):
         for i, dica in enumerate(['...'] + dicas[-4:]):
             escrever_texto(scr, dica, -1, -1, PAR_NORMAL, 1, -1, offset_y=-i + 1)
 
-        # seta de modo (a lógica dela pode precisar ser ajustada se usava o retorno de desenhar_caixas)
-        # Como não temos mais o retorno, vamos calcular a área da grade aqui
+        # seta de modo
         (start_cx, start_cy), _ = caixas[0]
         x_grade = start_cx * 2
         y_grade = start_cy
@@ -445,8 +476,8 @@ def loop(scr: curses.window, delta: float):
 
         scr.addstr(miny - 1, minx - 1, '+', COR)
         if get_mode() == MODO_X:
-            for x in range(minx, minx + maxx):
-                scr.addstr(miny - 1, x, '-', COR)
+            for x_pos in range(minx, minx + maxx):
+                scr.addstr(miny - 1, x_pos, '-', COR)
             scr.addstr(miny -  1, minx + maxx - 1, '>', COR)
         elif get_mode() == MODO_Y:
             for y_pos in range(miny, miny + maxy):
@@ -457,14 +488,49 @@ def loop(scr: curses.window, delta: float):
         #! eventos
         if get_event('mine_box'):
             if [x, y] == get_tesouro_pos():
-                # achou
-                set_event("found")
+                set_event("found") # ACHOU!
             else:
-                dica = _criar_pista(x, y, *get_tesouro_pos())
-                # CORREÇÃO: Adiciona à lista `dicas`, não `pistas`
-                dicas.append(dica)
-                set_event("mined")
-                _add_area_achada(x, y)
+                # Só minera e gasta durabilidade se não for uma área já achada
+                if not dentro_de_areas_achadas(x, y):
+                    dica = _criar_pista(x, y, *get_tesouro_pos())
+                    dicas.append(dica)
+                    set_event("mined") # <--- Evento que gasta durabilidade
+                    _add_area_achada(x, y)
+                else:
+                    # Área já minerada, não faz nada e não gasta
+                    pass
+
+        if not get_tutorial_passed():
+            if f < 60:
+                escrever_texto(
+                    scr, trd("Mova usando [WASD] e setas", "Move using [WASD] and arrows"), -1, -1, PAR_NORMAL, 0, 0, offset_y=1
+                )
+            elif f < 120:
+                escrever_texto(
+                    scr, trd("Aperte [E] para cavar ", "Press [E] to mine "), -1, -1, PAR_NORMAL, 0, 0, offset_x=-1
+                )
+            elif f < 180:
+                escrever_texto(
+                    scr, trd("Aperte [R] para mudar o eixo", "Press [R] to change axis"), -1, -1, PAR_NORMAL, 0, 0
+                )
+            elif f < 240:
+                escrever_texto(
+                    scr, trd(" as \"Vidas\" estão no canto superior esquerdo", "Lives are in the upper left corner"), -1, -1, PAR_NORMAL, 0, 0   
+                )
+            elif f < 285:
+                escrever_texto(
+                    scr, trd(" as \"Dicas\" estão no canto inferior esquerdo", "Hints are in the lower left corner"), -1, -1, PAR_NORMAL, 0, 0
+                )
+            elif f < 330:
+                escrever_texto(
+                    scr, trd(" Ache o tesouro!", "Find the treasure"), -1, -1, PAR_NORMAL, 0, 0, padx=5
+                )
+            elif f < 380:
+                escrever_texto(
+                    scr, trd(" Boa sorte!", "Good luck!"), -1, -1, PAR_NORMAL, 0, 0, padx=5
+                )
+            else:
+                set_tutorial_passed(True)
 
 
     #! cena opcoes
@@ -475,22 +541,36 @@ def loop(scr: curses.window, delta: float):
         if f == 0:
             mudar_titulo_do_terminal(trd("Opções", "Options"))
             scr.erase()
-            escrever_texto(scr, trd("Opções", "Options"), -1, 2, PAR_VERMELHO_FUNDO_PRETO, 0)
+            y = 0
+            escrever_texto(scr, trd("Opções", "Options"), -1, y, PAR_VERMELHO_FUNDO_PRETO, -1, offset_x=3)
         
         if f == 1:
-            escrever_texto(scr, trd("OPÇÕES DE LINGUAGEM", "LANGUAGE OPTIONS"), -1, 4, PAR_DOURADO_FUNDO_PRETO, 0)
+            y = 1
+            escrever_texto(scr, trd("OPÇÕES DE LINGUAGEM", "LANGUAGE OPTIONS"), -1, y, PAR_DOURADO_FUNDO_PRETO, 0)
         
         if f == 2:
-            escrever_texto(scr, trd("Português", "Portuguese"), -1, 6, PAR_NORMAL, 1, padx=padx, offset_x=1)
-            escrever_texto(scr, "[1]:", -1, 6, PAR_NORMAL, -1, padx=padx, offset_x=1)
+            y = 2
+            escrever_texto(scr, trd("Português", "Portuguese"), -1, y, PAR_NORMAL, 1, padx=padx, offset_x=1)
+            escrever_texto(scr, "[1]:", -1, y, PAR_NORMAL, -1, padx=padx, offset_x=1)
 
         if f == 3:
-            escrever_texto(scr, trd("English", "English"), -1, 7, PAR_NORMAL, 1, padx=padx, offset_x=1)
-            escrever_texto(scr, "[2]:", -1, 7, PAR_NORMAL, -1, padx=padx, offset_x=1)
+            y = 3
+            escrever_texto(scr, trd("English", "English"), -1, y, PAR_NORMAL, 1, padx=padx, offset_x=1)
+            escrever_texto(scr, "[2]:", -1, y, PAR_NORMAL, -1, padx=padx, offset_x=1)
 
-        if f == 4:
-            escrever_texto(scr, trd("Voltar", "Back"), -1, 9, PAR_VERMELHO_FUNDO_PRETO, 1, padx=padx, offset_x=1)
-            escrever_texto(scr, "[3]:", -1, 9, PAR_VERMELHO_FUNDO_PRETO, -1, padx=padx, offset_x=1)
+        if f == 5:
+            y = 5
+            escrever_texto(scr, trd("DADOS", "DATA"), -1, y, PAR_AZUL_FUNDO_PRETO, 0)
+        
+        if f == 6:
+            y = 6
+            escrever_texto(scr, trd("Limpar dados", "Clear data"), -1, y, PAR_NORMAL, 1, padx=padx, offset_x=1)
+            escrever_texto(scr, "[R]:", -1, y, PAR_NORMAL, -1, padx=padx, offset_x=1)
+
+        if f == 7:
+            y = scr.getmaxyx()[0] - 2
+            escrever_texto(scr, trd("Voltar", "Back"), -1, y, PAR_VERMELHO_FUNDO_PRETO, 1, padx=padx, offset_x=1)
+            escrever_texto(scr, "[3]:", -1, y, PAR_VERMELHO_FUNDO_PRETO, -1, padx=padx, offset_x=1)
 
         # teclas
 
@@ -499,10 +579,14 @@ def loop(scr: curses.window, delta: float):
 
         elif key == (teclas.DIGIT1): # PORTUGUES
             set_language(0)
-            set_scene(3)
+            set_scene(3) # Recarrega a cena para aplicar a tradução
 
         elif key == (teclas.DIGIT2): # ENGLISH
             set_language(1)
+            set_scene(3) # Recarrega a cena para aplicar a tradução
+
+        elif key in [teclas.R, teclas.r]: # REsetar
+            armazenamento.limpar()
             set_scene(3)
 
     #! cena sair
@@ -521,6 +605,44 @@ def loop(scr: curses.window, delta: float):
         if f == 2:
             set_event("scene1_quit")
 
+     
+    def VITORIA(f: int):
+        key = get_curkey()
+        if f == 0:
+            mudar_titulo_do_terminal(trd("Vitória!", "Victory!"))
+            scr.erase()
+        
+        if f == 1:
+            escrever_texto(scr, trd("VOCÊ VENCEU!", "YOU WIN!"), -1, 2, PAR_DOURADO_FUNDO_PRETO, 0)
+    
+        if f == 30:
+            escrever_texto(scr, trd("Parabéns, você encontrou o tesouro!", "Congratulations, you found the treasure!"), -1, 4, PAR_NORMAL, 0)
+    
+        if f == 60:
+            escrever_texto(scr, trd("[1]: Voltar ao Menu", "[1]: Back to Menu"), -1, 6, PAR_NORMAL, 0)
+
+        if key == (teclas.DIGIT1): # VOLTAR AO MENU
+            set_scene(1)
+
+     
+    def GAME_OVER(f: int):
+        key = get_curkey()
+        if f == 0:
+            mudar_titulo_do_terminal(trd("Fim de Jogo", "Game Over"))
+            scr.erase()
+        
+        if f == 1:
+            escrever_texto(scr, trd("FIM DE JOGO", "GAME OVER"), -1, 2, PAR_VERMELHO_FUNDO_PRETO, 0)
+    
+        if f == 15:
+            escrever_texto(scr, trd("Você ficou sem usos!", "You ran out of uses!"), -1, 4, PAR_NORMAL, 0)
+    
+        if f == 45:
+            escrever_texto(scr, trd("[1]: Voltar ao Menu", "[1]: Back to Menu"), -1, 6, PAR_NORMAL, 0)
+
+        if key == (teclas.DIGIT1): # VOLTAR AO MENU
+            set_scene(1)
+
     [ #! CENAS
         
         # main ->
@@ -536,6 +658,11 @@ def loop(scr: curses.window, delta: float):
 
         # JOGAR ->
         JOGO,         # 5
+
+        # JOGO ->
+        VITORIA,      # 6
+        GAME_OVER,    # 7
+
     ][get_scene()](get_frame())
     # ^^^^^^^^^^^  ^^^^^^^^^^^ 
     # |cena atual  |frame atual
@@ -550,24 +677,30 @@ def start(stdscr: curses.window):
 # region quando caractere pressionado
 @on_char.append
 def char(stdscr: curses.window, char: int):
-    if (char in [teclas.ESC, teclas.q, teclas.Q]):
-        set_scene(4)
+    if (char in [teclas.ESC]):
+        # Se estiver no jogo, volta ao menu. Se não, sai.
+        if get_scene() == 5:
+            set_scene(1) 
+        else:
+            set_scene(4)
     
     if (char == curses.KEY_RESIZE):
         curses.resize_term(*get_dimensions())
     
-    if (char == curses.KEY_F5):
+    if (char == curses.KEY_F5) and get_debug():
         set_scene(get_scene())
     
-    if (char in [teclas.m, teclas.M]):
-        set_scene(0)
+    if (char in [teclas.m, teclas.M]) and get_debug():
+        set_scene(1) # Alterado de 0 para 1 para ir ao Menu, não ao Tutorial
     
     if (char in [curses.KEY_F3]):
         set_debug(not get_debug())
         stdscr.erase()
         set_scene(get_scene())
 
-    if (get_scene(5)):
+    # A função get_scene() sem argumentos retorna o valor.
+    # Para verificar se é a cena 5, use get_scene() == 5
+    if (get_scene() == 5):
         x, y = get_x(), get_y()
         if (char in [teclas.a, teclas.A, curses.KEY_LEFT]):
             x = (x - 1)
@@ -591,7 +724,7 @@ def char(stdscr: curses.window, char: int):
         set_x(x)
         set_y(y)
 
-        if (char in [curses.KEY_ENTER, teclas.e, teclas.E]):
+        if (char in [curses.KEY_ENTER, teclas.e, teclas.E, 32]): # Adicionado 32 (Espaço)
             set_event('mine_box')
 
         if (char in [teclas.R, teclas.r]):
@@ -602,8 +735,10 @@ def char(stdscr: curses.window, char: int):
             nums = [teclas.DIGIT0, teclas.DIGIT1, teclas.DIGIT2, teclas.DIGIT3, teclas.DIGIT4, teclas.DIGIT5, teclas.DIGIT6, teclas.DIGIT7, teclas.DIGIT8, teclas.DIGIT9]
             if char in nums:
                 num = nums.index(char)
-                set_scene(num)
-                set_lastkey(-1)
+                # Proteção para não ir a uma cena que não existe
+                if num <= 7: 
+                    set_scene(num)
+                    set_lastkey(-1)
             return
         
     set_curkey(char)
@@ -638,7 +773,8 @@ def main(stdscr: curses.window):
             funcao(stdscr, delta)
 
         stdscr.refresh()
-        time = delta
+        time = delta # CORREÇÃO: 'time' deve ser atualizado para o tempo atual, não 'delta'
+        time = sum(os.times()) # Correção do 'time'
 
         curframe = get_frame() + 1
 
@@ -661,7 +797,29 @@ def main(stdscr: curses.window):
                 set_mode(MODO_X)
 
         if get_event("found"):
-            set_scene(4)
+            curframe = 0
+            if get_difficulty() == DIFF_FACIL:
+                set_gfacil(True)
+            elif get_difficulty() == DIFF_NORMAL:
+                set_gmedio(True)
+            elif get_difficulty() == DIFF_DIFICIL:
+                set_gdificil(True)
+            set_scene(6) # Vai para a cena VITORIA
+
+        if get_event("mined"):
+            nova_durabilidade = get_durability() - 1
+            set_durability(nova_durabilidade)
+            if nova_durabilidade <= 0:
+                set_event("game_over") 
+
+        if get_event("game_over"):
+            curframe = 0
+            set_scene(7) # Vai para a cena GAME_OVER
+
+        if get_event("change_notif"):
+            set_notif("")
+
+        # Limpa o evento DEPOIS de ser processado
         if get_event() != '': set_event('')
         set_frame(curframe)
         set_curkey(-1)

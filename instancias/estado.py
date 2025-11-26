@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Any, Callable
 
 
 _estado = list
@@ -6,7 +6,7 @@ _estado = list
 _getter = object
 _setter = object
 
-def criar(vi: object = 0, quando_mudado: Callable[[object, object], None] | None = None) -> _estado:
+def criar(vi: object = 0, quando_mudado: Callable[[Any, Any], None] | None = None) -> _estado:
     valor: list[object] = [vi]
     def getter(v: object = None):
         if v:
