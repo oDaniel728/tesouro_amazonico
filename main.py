@@ -62,6 +62,7 @@ armazenamento.add_estado("lang", get_language)
 [get_tutorial_passed, set_tutorial_passed] = estado.criar(
     armazenamento.pegar("tutorial_passed", False)
 )
+[get_tutorial_started, set_tutorial_started] = estado.criar(False)
 armazenamento.add_estado("tutorial_passed", get_tutorial_passed)
 
 [get_x, set_x] = estado.criar(0)
@@ -256,7 +257,6 @@ def loop(scr: curses.window, delta: float):
             mudar_titulo_do_terminal(trd("Tesouro Amazônico", "Amazonic Treasure Hunt"))
             scr.erase()
             escrever_texto(scr, trd("TESOURO  AMAZÔNICO", "AMAZONIC TREASURE HUNT"), -1, 2, PAR_VERDE_FUNDO_PRETO, 0)
-
         if f == 1: 
             escrever_texto(scr, trd("Jogar", "Play"), -1, 4, PAR_NORMAL, 1, padx=padding_x, offset_x=1)
             escrever_texto(scr, "[1]:", -1, 4, PAR_NORMAL, -1, padx=padding_x, offset_x=1)
@@ -413,6 +413,11 @@ def loop(scr: curses.window, delta: float):
             dicas.append('') # Adiciona a dica inicial vazia
             areas_achadas.clear() # Limpa as áreas achadas
 
+            # se o tutorial já começou mas não terminou
+            # o tutorial termina
+            if not get_tutorial_passed() and get_tutorial_started():
+                set_tutorial_passed(True)
+
             return
 
         # Limpamos a tela no início de cada frame
@@ -501,6 +506,7 @@ def loop(scr: curses.window, delta: float):
                     pass
 
         if not get_tutorial_passed():
+            set_tutorial_started(True)
             if f < 60:
                 escrever_texto(
                     scr, trd("Mova usando [WASD] e setas", "Move using [WASD] and arrows"), -1, -1, PAR_NORMAL, 0, 0, offset_y=1
@@ -531,7 +537,6 @@ def loop(scr: curses.window, delta: float):
                 )
             else:
                 set_tutorial_passed(True)
-
 
     #! cena opcoes
     def OPCOES(f: int):
